@@ -1,0 +1,33 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test cache
+_test
+*.test
+*.test.log
+
+# Build cache
+/build/
+
+# Dependency management
+/vendor/
+
+# Go specific
+go.sum
+
+# IDEs
+.idea/
+.vscode/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Personal or sensitive files
+*.log
+*.out
+*.dump
+.env
