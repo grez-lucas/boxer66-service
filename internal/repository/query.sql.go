@@ -9,6 +9,31 @@ import (
 	"context"
 )
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (email, password, created_at, updated_at)
+VALUES ($1, $2, NOW(), NOW())
+RETURNING id, email, password, salt, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	Email    string `json:"email"`
+	Password []byte `json:"password"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.Email, arg.Password)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.Salt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = $1
@@ -20,7 +45,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, email, password, created_at, updated_at FROM users
+SELECT id, email, password, salt, created_at, updated_at FROM users
 `
 
 func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
@@ -36,6 +61,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.Email,
 			&i.Password,
+			&i.Salt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -50,7 +76,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, password, created_at, updated_at FROM users
+SELECT id, email, password, salt, created_at, updated_at FROM users
 `
 
 func (q *Queries) GetUser(ctx context.Context) (User, error) {
@@ -60,6 +86,7 @@ func (q *Queries) GetUser(ctx context.Context) (User, error) {
 		&i.ID,
 		&i.Email,
 		&i.Password,
+		&i.Salt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

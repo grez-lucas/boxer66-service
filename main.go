@@ -8,6 +8,7 @@ import (
 
 	"github.com/grez-lucas/boxer66-service/internal/config"
 	"github.com/grez-lucas/boxer66-service/internal/repository"
+	"github.com/grez-lucas/boxer66-service/middleware"
 	"github.com/grez-lucas/boxer66-service/users"
 	"github.com/jackc/pgx/v5"
 )
@@ -31,6 +32,8 @@ func main() {
 	uService := users.NewUserService(ctx, queries)
 	uHandlers := users.NewUserHandlers(uService)
 
+	chain := middleware.CreateStack(middleware.Logging)
+
 	router := http.NewServeMux()
 	router.HandleFunc("/", greet)
 	router.HandleFunc("GET /users", uHandlers.GetUsers)
@@ -40,7 +43,7 @@ func main() {
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		ReadHeaderTimeout: 30 * time.Second,
-		Handler:           router,
+		Handler:           chain(router),
 	}
 
 	fmt.Println("Server listening on port :8080")

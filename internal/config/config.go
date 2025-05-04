@@ -15,6 +15,7 @@ var (
 
 type Config struct {
 	DatabaseURL string
+	JWTSecret   string
 }
 
 func LoadConfig() *Config {
@@ -34,6 +35,7 @@ func load() *Config {
 
 	cfg := &Config{
 		DatabaseURL: os.Getenv("DB_URL"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
 
 	return cfg
