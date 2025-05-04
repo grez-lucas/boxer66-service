@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   email VARCHAR NOT NULL,
@@ -10,6 +12,6 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX on users(email);
 
 INSERT INTO users (id, email, password, created_at, updated_at) VALUES
-(1, 'john@example.com', '\x$2a$10$someRandomSaltedHashForJohn', now(), now()),
-(2, 'mary@example.com', '\x$2a$10$anotherDifferentSaltedHashForMary', now(), now()),
-(3, 'david@example.com', '\x$2a$10$anotherDifferentSaltedHashForDavid', now(), now());
+(1, 'john@example.com', gen_random_bytes(10), now(), now()),
+(2, 'mary@example.com', gen_random_bytes(10), now(), now()),
+(3, 'david@example.com', gen_random_bytes(10), now(), now());
