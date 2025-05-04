@@ -12,4 +12,5 @@ type IUserHanlders interface {
 
 type IUserService interface {
 	GetUsers() ([]repository.User, error)
+	Login(email string, requestPassword string) (*LoginResponse, error)
 }

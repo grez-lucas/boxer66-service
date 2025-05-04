@@ -37,6 +37,7 @@ func main() {
 	router := http.NewServeMux()
 	router.HandleFunc("/", greet)
 	router.HandleFunc("GET /users", uHandlers.GetUsers)
+	router.HandleFunc("POST /login", uHandlers.Login)
 
 	server := http.Server{
 		Addr:              ":8080",
