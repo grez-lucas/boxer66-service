@@ -15,9 +15,6 @@ _test
 # Dependency management
 /vendor/
 
-# Go specific
-go.sum
-
 # IDEs
 .idea/
 .vscode/
