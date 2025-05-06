@@ -12,5 +12,8 @@ type IUserHanlders interface {
 
 type IUserService interface {
 	GetUsers() ([]repository.User, error)
-	Login(email string, requestPassword string) (*LoginResponse, error)
+	Login(email, requestPassword string) (user *repository.User, jwt string, err error)
+	Register(email, password string) error
+	VerifyEmailToken(email, token string) (user *repository.User, jwt string, err error)
+	CreateUser(email, requestPassword string) (*repository.User, error)
 }

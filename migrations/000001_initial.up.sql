@@ -5,7 +5,7 @@ CREATE TABLE users (
   email VARCHAR NOT NULL,
   password BYTEA NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX on users(email);

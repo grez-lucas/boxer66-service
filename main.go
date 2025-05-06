@@ -38,6 +38,8 @@ func main() {
 	router.HandleFunc("/", greet)
 	router.HandleFunc("GET /users", uHandlers.GetUsers)
 	router.HandleFunc("POST /login", uHandlers.Login)
+	router.HandleFunc("POST /register", uHandlers.Register)
+	router.HandleFunc("POST /verify-email", uHandlers.VerifyEmail)
 
 	server := http.Server{
 		Addr:              ":8080",

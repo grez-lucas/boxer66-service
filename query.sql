@@ -23,6 +23,10 @@ INSERT INTO email_verification_tokens (email, verification_token, hashed_passwor
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
--- name: GetEmailVerificationTokenByEmailAndToken :one
+-- name: GetEmailVerificationTokenByEmail :one
 SELECT * FROM email_verification_tokens
-WHERE email = $1 AND verification_token = $2;
+WHERE email = $1;
+
+-- name: DeleteEmailVerificationTokenByID :exec
+DELETE FROM email_verification_tokens
+WHERE id = $1;

@@ -8,6 +8,8 @@ package repository
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createEmailVerificationToken = `-- name: CreateEmailVerificationToken :one
@@ -67,6 +69,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteEmailVerificationTokenByID = `-- name: DeleteEmailVerificationTokenByID :exec
+DELETE FROM email_verification_tokens
+WHERE id = $1
+`
+
+func (q *Queries) DeleteEmailVerificationTokenByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEmailVerificationTokenByID, id)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = $1
@@ -107,18 +119,13 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
-const getEmailVerificationTokenByEmailAndToken = `-- name: GetEmailVerificationTokenByEmailAndToken :one
+const getEmailVerificationTokenByEmail = `-- name: GetEmailVerificationTokenByEmail :one
 SELECT id, email, verification_token, hashed_password_cache_key, token_type, created_at, expires_at FROM email_verification_tokens
-WHERE email = $1 AND verification_token = $2
+WHERE email = $1
 `
 
-type GetEmailVerificationTokenByEmailAndTokenParams struct {
-	Email             string `json:"email"`
-	VerificationToken string `json:"verification_token"`
-}
-
-func (q *Queries) GetEmailVerificationTokenByEmailAndToken(ctx context.Context, arg GetEmailVerificationTokenByEmailAndTokenParams) (EmailVerificationToken, error) {
-	row := q.db.QueryRow(ctx, getEmailVerificationTokenByEmailAndToken, arg.Email, arg.VerificationToken)
+func (q *Queries) GetEmailVerificationTokenByEmail(ctx context.Context, email string) (EmailVerificationToken, error) {
+	row := q.db.QueryRow(ctx, getEmailVerificationTokenByEmail, email)
 	var i EmailVerificationToken
 	err := row.Scan(
 		&i.ID,
