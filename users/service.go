@@ -41,10 +41,11 @@ func NewUserService(
 }
 
 var (
-	ErrUserDoesntExist = errors.New("user does not exist")
-	ErrInvalidPassword = errors.New("password is invalid")
-	ErrInvalidToken    = errors.New("token is invalid")
-	ErrTokenIsExpired  = errors.New("token is expired")
+	ErrUserAlreadyExists = errors.New("a user with this email already exists")
+	ErrUserDoesntExist   = errors.New("user does not exist")
+	ErrInvalidPassword   = errors.New("password is invalid")
+	ErrInvalidToken      = errors.New("token is invalid")
+	ErrTokenIsExpired    = errors.New("token is expired")
 )
 
 func (s *UserService) GetUsers() ([]repository.User, error) {
@@ -110,6 +111,13 @@ func (s *UserService) Login(email string, requestPassword string) (*repository.U
 }
 
 func (s *UserService) Register(email, password string) error {
+	// Check if the email is already taken
+	existingUser, err := s.repository.GetUserByEmail(s.ctx, email)
+	if !errors.Is(err, sql.ErrNoRows) {
+		slog.Error("A user with this email already exists", slog.String("email", email), slog.Int("user_id", int(existingUser.ID)))
+		return ErrUserAlreadyExists
+	}
+
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
@@ -120,7 +128,6 @@ func (s *UserService) Register(email, password string) error {
 		return fmt.Errorf("failed to generate unique token: %w", err)
 	}
 	cacheKey := generateCacheKey(email)
-	s.passwordCache.Store(cacheKey, hashedPassword)
 
 	// Save token in DB
 	token, err := s.repository.CreateEmailVerificationToken(s.ctx, repository.CreateEmailVerificationTokenParams{
@@ -135,6 +142,7 @@ func (s *UserService) Register(email, password string) error {
 
 	// TODO: Send the token to the user via email service
 	slog.Info("Sending token via email", slog.String("token", token.VerificationToken), slog.String("email", email))
+	s.passwordCache.Store(cacheKey, hashedPassword)
 
 	return nil
 }
@@ -166,15 +174,15 @@ func (s *UserService) VerifyEmailToken(email, token string) (*repository.User, s
 	if !ok {
 		return nil, "", errors.New("password not found in cache")
 	}
-	hashedPasswordStr, ok := hashedPassword.(string)
+	hashedPasswordBytes, ok := hashedPassword.([]byte)
 	if !ok {
-		return nil, "", errors.New("stored hashedPassword value is not of type string")
+		return nil, "", errors.New("stored hashedPassword value is not of type byte array")
 	}
 
 	// 4. Create a user in the users table with the memory password
 	user, err := s.repository.CreateUser(s.ctx, repository.CreateUserParams{
 		Email:    email,
-		Password: []byte(hashedPasswordStr),
+		Password: hashedPasswordBytes,
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create user in db: %w", err)

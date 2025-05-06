@@ -99,6 +99,10 @@ func (h *UserHandlers) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.Register(registerRequest.Email, registerRequest.Password); err != nil {
 		slog.Error("Failed to register user", slog.Any("error", err))
+		if errors.Is(err, ErrUserAlreadyExists) {
+			WriteError(w, "The provided email has already been taken", http.StatusConflict)
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

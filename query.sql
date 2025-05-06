@@ -14,8 +14,8 @@ DELETE FROM users
 WHERE id = $1;
 
 -- name: CreateUser :one
-INSERT INTO users (email, password, created_at, updated_at)
-VALUES ($1, $2, NOW(), NOW())
+INSERT INTO users (email, password, updated_at)
+VALUES ($1, $2, NOW())
 RETURNING *;
 
 -- name: CreateEmailVerificationToken :one
