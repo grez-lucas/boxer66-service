@@ -7,12 +7,46 @@ package repository
 
 import (
 	"context"
+	"time"
 )
+
+const createEmailVerificationToken = `-- name: CreateEmailVerificationToken :one
+INSERT INTO email_verification_tokens (email, verification_token, hashed_password_cache_key, expires_at)
+VALUES ($1, $2, $3, $4)
+RETURNING id, email, verification_token, hashed_password_cache_key, token_type, created_at, expires_at
+`
+
+type CreateEmailVerificationTokenParams struct {
+	Email                  string    `json:"email"`
+	VerificationToken      string    `json:"verification_token"`
+	HashedPasswordCacheKey string    `json:"hashed_password_cache_key"`
+	ExpiresAt              time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) (EmailVerificationToken, error) {
+	row := q.db.QueryRow(ctx, createEmailVerificationToken,
+		arg.Email,
+		arg.VerificationToken,
+		arg.HashedPasswordCacheKey,
+		arg.ExpiresAt,
+	)
+	var i EmailVerificationToken
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.VerificationToken,
+		&i.HashedPasswordCacheKey,
+		&i.TokenType,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password, created_at, updated_at)
 VALUES ($1, $2, NOW(), NOW())
-RETURNING id, email, password, salt, created_at, updated_at
+RETURNING id, email, password, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -27,7 +61,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.ID,
 		&i.Email,
 		&i.Password,
-		&i.Salt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -45,7 +78,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, email, password, salt, created_at, updated_at FROM users
+SELECT id, email, password, created_at, updated_at FROM users
 `
 
 func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
@@ -61,7 +94,6 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.Email,
 			&i.Password,
-			&i.Salt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -75,8 +107,33 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getEmailVerificationTokenByEmailAndToken = `-- name: GetEmailVerificationTokenByEmailAndToken :one
+SELECT id, email, verification_token, hashed_password_cache_key, token_type, created_at, expires_at FROM email_verification_tokens
+WHERE email = $1 AND verification_token = $2
+`
+
+type GetEmailVerificationTokenByEmailAndTokenParams struct {
+	Email             string `json:"email"`
+	VerificationToken string `json:"verification_token"`
+}
+
+func (q *Queries) GetEmailVerificationTokenByEmailAndToken(ctx context.Context, arg GetEmailVerificationTokenByEmailAndTokenParams) (EmailVerificationToken, error) {
+	row := q.db.QueryRow(ctx, getEmailVerificationTokenByEmailAndToken, arg.Email, arg.VerificationToken)
+	var i EmailVerificationToken
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.VerificationToken,
+		&i.HashedPasswordCacheKey,
+		&i.TokenType,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, salt, created_at, updated_at FROM users
+SELECT id, email, password, created_at, updated_at FROM users
 WHERE email = $1
 `
 
@@ -87,7 +144,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.Email,
 		&i.Password,
-		&i.Salt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -95,7 +151,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password, salt, created_at, updated_at FROM users
+SELECT id, email, password, created_at, updated_at FROM users
 WHERE id = $1
 `
 
@@ -106,7 +162,6 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 		&i.ID,
 		&i.Email,
 		&i.Password,
-		&i.Salt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -5,14 +5,26 @@
 package repository
 
 import (
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type EmailVerificationToken struct {
+	ID                     uuid.UUID   `json:"id"`
+	Email                  string      `json:"email"`
+	VerificationToken      string      `json:"verification_token"`
+	HashedPasswordCacheKey string      `json:"hashed_password_cache_key"`
+	TokenType              pgtype.Text `json:"token_type"`
+	CreatedAt              time.Time   `json:"created_at"`
+	ExpiresAt              time.Time   `json:"expires_at"`
+}
+
 type User struct {
-	ID        int32              `json:"id"`
-	Email     string             `json:"email"`
-	Password  []byte             `json:"password"`
-	Salt      []byte             `json:"salt"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID        int32     `json:"id"`
+	Email     string    `json:"email"`
+	Password  []byte    `json:"password"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
