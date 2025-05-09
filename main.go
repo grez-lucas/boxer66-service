@@ -9,6 +9,7 @@ import (
 	"github.com/grez-lucas/boxer66-service/internal/config"
 	"github.com/grez-lucas/boxer66-service/internal/repository"
 	"github.com/grez-lucas/boxer66-service/middleware"
+	"github.com/grez-lucas/boxer66-service/smtp"
 	"github.com/grez-lucas/boxer66-service/users"
 	"github.com/jackc/pgx/v5"
 )
@@ -30,7 +31,8 @@ func main() {
 	queries := repository.New(conn)
 
 	uService := users.NewUserService(ctx, queries)
-	uHandlers := users.NewUserHandlers(uService)
+	smtpService := smtp.NewSMTPService(cfg.SMTPConfig)
+	uHandlers := users.NewUserHandlers(uService, smtpService)
 
 	chain := middleware.CreateStack(middleware.Logging)
 

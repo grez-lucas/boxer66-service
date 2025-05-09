@@ -16,6 +16,14 @@ var (
 type Config struct {
 	DatabaseURL string
 	JWTSecret   string
+	SMTPConfig  SMTPConfig
+}
+
+type SMTPConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
 }
 
 func LoadConfig() *Config {
@@ -36,6 +44,12 @@ func load() *Config {
 	cfg := &Config{
 		DatabaseURL: os.Getenv("DB_URL"),
 		JWTSecret:   os.Getenv("JWT_SECRET"),
+		SMTPConfig: SMTPConfig{
+			Host:     os.Getenv("SMTP_HOST"),
+			Port:     os.Getenv("SMTP_PORT"),
+			User:     os.Getenv("SMTP_USER"),
+			Password: os.Getenv("SMTP_PASSWORD"),
+		},
 	}
 
 	return cfg

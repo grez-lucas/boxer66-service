@@ -13,7 +13,7 @@ type IUserHanlders interface {
 type IUserService interface {
 	GetUsers() ([]repository.User, error)
 	Login(email, requestPassword string) (user *repository.User, jwt string, err error)
-	Register(email, password string) error
+	Register(email, password string) (*repository.EmailVerificationToken, error)
 	VerifyEmailToken(email, token string) (user *repository.User, jwt string, err error)
 	CreateUser(email, requestPassword string) (*repository.User, error)
 }

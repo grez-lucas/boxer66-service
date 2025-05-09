@@ -110,22 +110,23 @@ func (s *UserService) Login(email string, requestPassword string) (*repository.U
 	return &user, token, nil
 }
 
-func (s *UserService) Register(email, password string) error {
+func (s *UserService) Register(email, password string) (*repository.EmailVerificationToken, error) {
 	// Check if the email is already taken
 	existingUser, err := s.repository.GetUserByEmail(s.ctx, email)
+	// TODO: May 8 - Too broad, must use a more specific way to check for existence
 	if !errors.Is(err, sql.ErrNoRows) {
 		slog.Error("A user with this email already exists", slog.String("email", email), slog.Int("user_id", int(existingUser.ID)))
-		return ErrUserAlreadyExists
+		return nil, ErrUserAlreadyExists
 	}
 
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
-		return fmt.Errorf("failed to hash password: %w", err)
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	verificationToken, err := generateUniqueToken()
 	if err != nil {
-		return fmt.Errorf("failed to generate unique token: %w", err)
+		return nil, fmt.Errorf("failed to generate unique token: %w", err)
 	}
 	cacheKey := generateCacheKey(email)
 
@@ -137,14 +138,12 @@ func (s *UserService) Register(email, password string) error {
 		ExpiresAt:              time.Now().Add(1 * time.Hour), // TODO: Export this to a const
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create email verification token in db: %w", err)
+		return nil, fmt.Errorf("failed to create email verification token in db: %w", err)
 	}
 
-	// TODO: Send the token to the user via email service
-	slog.Info("Sending token via email", slog.String("token", token.VerificationToken), slog.String("email", email))
 	s.passwordCache.Store(cacheKey, hashedPassword)
 
-	return nil
+	return &token, nil
 }
 
 func (s *UserService) VerifyEmailToken(email, token string) (*repository.User, string, error) {

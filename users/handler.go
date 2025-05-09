@@ -6,19 +6,24 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+
+	"github.com/grez-lucas/boxer66-service/smtp"
 )
 
 type UserHandlers struct {
-	ctx     context.Context
-	service IUserService
+	ctx         context.Context
+	uService    IUserService
+	smtpService smtp.ISMTPService
 }
 
 func NewUserHandlers(
-	service IUserService,
+	uService IUserService,
+	smtpService smtp.ISMTPService,
 ) *UserHandlers {
 	return &UserHandlers{
-		ctx:     context.Background(),
-		service: service,
+		ctx:         context.Background(),
+		uService:    uService,
+		smtpService: smtpService,
 	}
 }
 
@@ -39,7 +44,7 @@ func WriteSuccess(w http.ResponseWriter, mesg string, statusCode int) {
 }
 
 func (h *UserHandlers) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.service.GetUsers()
+	users, err := h.uService.GetUsers()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("Failed to get users from service", slog.Any("error", err))
@@ -65,7 +70,7 @@ func (h *UserHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, token, err := h.service.Login(loginRequest.Email, loginRequest.Password)
+	user, token, err := h.uService.Login(loginRequest.Email, loginRequest.Password)
 	if err != nil {
 		if errors.Is(err, ErrInvalidPassword) {
 			WriteError(w, "Password is invalid", http.StatusBadRequest)
@@ -97,7 +102,8 @@ func (h *UserHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Register(registerRequest.Email, registerRequest.Password); err != nil {
+	token, err := h.uService.Register(registerRequest.Email, registerRequest.Password)
+	if err != nil {
 		slog.Error("Failed to register user", slog.Any("error", err))
 		if errors.Is(err, ErrUserAlreadyExists) {
 			WriteError(w, "The provided email has already been taken", http.StatusConflict)
@@ -105,6 +111,12 @@ func (h *UserHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	if err := h.smtpService.SendVerificationEmail(registerRequest.Email, token.VerificationToken); err != nil {
+		slog.Error("Failed to send verification Email", slog.Any("error", err))
+		// TODO: Think about this flow... what do we do if the email fails to send?
+		// Just wait for the token to expire? Make it expire instantly? Attempt to send again?
 	}
 
 	WriteSuccess(w, "Verification code sent to email", http.StatusAccepted)
@@ -118,7 +130,7 @@ func (h *UserHandlers) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
-	user, jwt, err := h.service.VerifyEmailToken(verifyEmailRequest.Email, verifyEmailRequest.Token)
+	user, jwt, err := h.uService.VerifyEmailToken(verifyEmailRequest.Email, verifyEmailRequest.Token)
 	if err != nil {
 		slog.Error(
 			"Error verifying email",
