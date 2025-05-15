@@ -8,15 +8,10 @@ import (
 
 	"github.com/grez-lucas/boxer66-service/internal/config"
 	"github.com/grez-lucas/boxer66-service/internal/repository"
+	"github.com/grez-lucas/boxer66-service/internal/router"
 	"github.com/grez-lucas/boxer66-service/middleware"
-	"github.com/grez-lucas/boxer66-service/smtp"
-	"github.com/grez-lucas/boxer66-service/users"
 	"github.com/jackc/pgx/v5"
 )
-
-func greet(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World! %s", time.Now())
-}
 
 func main() {
 	ctx := context.Background()
@@ -30,18 +25,9 @@ func main() {
 
 	queries := repository.New(conn)
 
-	uService := users.NewUserService(ctx, queries)
-	smtpService := smtp.NewSMTPService(cfg.SMTPConfig)
-	uHandlers := users.NewUserHandlers(uService, smtpService)
+	chain := middleware.CreateStack(middleware.Logging, middleware.Cors)
 
-	chain := middleware.CreateStack(middleware.Logging)
-
-	router := http.NewServeMux()
-	router.HandleFunc("/", greet)
-	router.HandleFunc("GET /users", uHandlers.GetUsers)
-	router.HandleFunc("POST /login", uHandlers.Login)
-	router.HandleFunc("POST /register", uHandlers.Register)
-	router.HandleFunc("POST /verify-email", uHandlers.VerifyEmail)
+	router := router.NewRouter(ctx, cfg, queries)
 
 	server := http.Server{
 		Addr:              ":8080",
